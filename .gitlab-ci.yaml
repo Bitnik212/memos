@@ -1,0 +1,30 @@
+variables:
+  DOCKER_TLS_CERTDIR: ""
+
+stages:
+  - build
+
+default:
+  image: docker:24.0.9
+  services:
+    - docker:24.0.9-dind
+
+
+api-docker-image-job:
+  tags:
+    - dind
+  only:
+    - main
+  stage: build
+  hooks:
+    pre_get_sources_script:
+      - git config --global http.sslVerify "false"
+  before_script:
+    - echo $CI_JOB_TOKEN | docker login -u "gitlab-ci-token" --password-stdin $CI_REGISTRY
+  script:
+    - echo -e "\e[0Ksection_start:`date +%s`:build_dockerfile\r\e[0KBuild docker image"
+    - docker build -t $CI_REGISTRY_IMAGE:latest -f Dockerfile .
+    - echo -e "\e[0Ksection_end:`date +%s`:build_dockerfile\r\e[0K"
+    - echo -e "\e[0Ksection_start:`date +%s`:push_dockerfile\r\e[0KPush docker image"
+    - docker push $CI_REGISTRY_IMAGE:latest
+    - echo -e "\e[0Ksection_end:`date +%s`:push_dockerfile\r\e[0K"
